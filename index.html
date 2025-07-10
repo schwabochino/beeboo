@@ -205,43 +205,6 @@
             }
         }
 
-        // --- JS: Grid-Berechnung und Symbolgröße ---
-        function createBaskets() {
-            const container = document.getElementById('baskets-container');
-            container.innerHTML = '';
-            gameObjects = [];
-            const {basketCounts, correctIndex} = generateBasketCounts();
-            const symbols = ['⭐', '❤️', '🔵', '🟡', '🟢', '🟣', '🟠', '⚪', '🔴', '💙'];
-            const selectedSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-            basketCounts.forEach((count, index) => {
-                const basket = document.createElement('div');
-                basket.className = 'basket';
-                basket.dataset.count = count;
-                basket.onclick = () => clickBasket(basket, count);
-                // Grid-Berechnung: Finde optimale Spalten/Reihen
-                const {cols, rows} = getBestGrid(count);
-                const objectsContainer = document.createElement('div');
-                objectsContainer.className = 'basket-objects';
-                objectsContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-                objectsContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-                objectsContainer.style.width = '100%';
-                objectsContainer.style.height = '100%';
-                // Dynamische Symbolgröße: abhängig von Korbgröße und Gridgröße
-                const basketSize = window.innerWidth < 600 ? 75 : 90;
-                const cellSize = basketSize / Math.max(cols, rows);
-                const symbolSize = Math.max(12, Math.min(cellSize * 0.7, 28));
-                for (let i = 0; i < count; i++) {
-                    const object = document.createElement('div');
-                    object.className = 'basket-object';
-                    object.textContent = selectedSymbol;
-                    object.style.fontSize = symbolSize + 'px';
-                    objectsContainer.appendChild(object);
-                }
-                basket.appendChild(objectsContainer);
-                container.appendChild(basket);
-                gameObjects.push(basket);
-            });
-        }
         .basket:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 24px rgba(0,0,0,0.3);
