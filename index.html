@@ -176,8 +176,9 @@
             box-sizing: border-box;
         }
         .basket-object {
-            width: 100%;
-            height: 100%;
+            margin: auto;
+            width: 70%;
+            height: 70%;
             background: #FFD700;
             border-radius: 50%;
             display: flex;
@@ -185,28 +186,62 @@
             justify-content: center;
             color: #333;
             font-weight: bold;
-            font-size: min(2.2vw, 2.2vh, 22px);
+            font-size: 1em; /* Wird per JS gesetzt */
             box-sizing: border-box;
         }
         @media (max-width: 600px) {
             .basket {
-                width: 60px;
-                height: 60px;
-                min-width: 60px;
-                min-height: 60px;
-                max-width: 60px;
-                max-height: 60px;
+                width: 75px;
+                height: 75px;
+                min-width: 75px;
+                min-height: 75px;
+                max-width: 75px;
+                max-height: 75px;
                 padding: 1px;
             }
             .basket-objects {
                 gap: 1px;
                 padding: 1px;
             }
-            .basket-object {
-                font-size: min(4vw, 4vh, 14px);
-            }
         }
 
+        // --- JS: Grid-Berechnung und Symbolgröße ---
+        function createBaskets() {
+            const container = document.getElementById('baskets-container');
+            container.innerHTML = '';
+            gameObjects = [];
+            const {basketCounts, correctIndex} = generateBasketCounts();
+            const symbols = ['⭐', '❤️', '🔵', '🟡', '🟢', '🟣', '🟠', '⚪', '🔴', '💙'];
+            const selectedSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            basketCounts.forEach((count, index) => {
+                const basket = document.createElement('div');
+                basket.className = 'basket';
+                basket.dataset.count = count;
+                basket.onclick = () => clickBasket(basket, count);
+                // Grid-Berechnung: Finde optimale Spalten/Reihen
+                const {cols, rows} = getBestGrid(count);
+                const objectsContainer = document.createElement('div');
+                objectsContainer.className = 'basket-objects';
+                objectsContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+                objectsContainer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+                objectsContainer.style.width = '100%';
+                objectsContainer.style.height = '100%';
+                // Dynamische Symbolgröße: abhängig von Korbgröße und Gridgröße
+                const basketSize = window.innerWidth < 600 ? 75 : 90;
+                const cellSize = basketSize / Math.max(cols, rows);
+                const symbolSize = Math.max(12, Math.min(cellSize * 0.7, 28));
+                for (let i = 0; i < count; i++) {
+                    const object = document.createElement('div');
+                    object.className = 'basket-object';
+                    object.textContent = selectedSymbol;
+                    object.style.fontSize = symbolSize + 'px';
+                    objectsContainer.appendChild(object);
+                }
+                basket.appendChild(objectsContainer);
+                container.appendChild(basket);
+                gameObjects.push(basket);
+            });
+        }
         .basket:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 24px rgba(0,0,0,0.3);
@@ -1169,43 +1204,6 @@
             
             // Körbe erstellen
             createBaskets();
-        }
-
-        // Körbe erstellen
-        function createBaskets() {
-            const container = document.getElementById('baskets-container');
-            container.innerHTML = '';
-            gameObjects = [];
-            
-            // 3 Körbe mit verschiedenen Anzahlen erstellen
-            const {basketCounts, correctIndex} = generateBasketCounts();
-            const symbols = ['⭐', '❤️', '🔵', '🟡', '🟢', '🟣', '🟠', '⚪', '🔴', '💙'];
-            const selectedSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-            
-            basketCounts.forEach((count, index) => {
-                const basket = document.createElement('div');
-                basket.className = 'basket';
-                basket.dataset.count = count;
-                basket.onclick = () => clickBasket(basket, count);
-                
-                // Objekte im Korb als Grid (max 5 Spalten)
-                const objectsContainer = document.createElement('div');
-                objectsContainer.className = 'basket-objects';
-                const columns = Math.min(5, Math.ceil(Math.sqrt(count)));
-                objectsContainer.style.display = 'grid';
-                objectsContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-                objectsContainer.style.justifyItems = 'center';
-                objectsContainer.style.gap = '5px';
-                for (let i = 0; i < count; i++) {
-                    const object = document.createElement('div');
-                    object.className = 'basket-object';
-                    object.textContent = selectedSymbol;
-                    objectsContainer.appendChild(object);
-                }
-                basket.appendChild(objectsContainer);
-                container.appendChild(basket);
-                gameObjects.push(basket);
-            });
         }
 
         // Verschiedene Anzahlen für Körbe generieren
