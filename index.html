@@ -609,6 +609,31 @@
             user-select: none;
             -webkit-touch-callout: none;
         }
+        .color-object.selected, .shape-object.selected {
+            outline: 3px solid #4a90e2;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 4px #b3d1f7;
+            z-index: 2;
+        }
+        .color-object.wrong, .shape-object.wrong {
+            outline: 3px solid #f44336;
+            box-shadow: 0 0 0 4px #fbb;
+            z-index: 2;
+        }
+        @keyframes fly-to-target {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            80% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.2);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1111,7 +1136,30 @@
             createColorsGame();
         }
 
-        // Farben-Spiel erstellen (mit interact.js)
+        // Hilfsfunktion: Mische Array so, dass keine gleichen nebeneinander sind
+        function shuffleNoAdjacentDuplicates(arr, key) {
+            let shuffled;
+            let maxTries = 20;
+            do {
+                shuffled = arr.slice();
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                let hasAdjacent = false;
+                for (let i = 1; i < shuffled.length; i++) {
+                    if (shuffled[i][key] === shuffled[i-1][key]) {
+                        hasAdjacent = true;
+                        break;
+                    }
+                }
+                if (!hasAdjacent) return shuffled;
+                maxTries--;
+            } while (maxTries > 0);
+            return shuffled; // Fallback
+        }
+
+        // Farben-Spiel erstellen (Klick-Prinzip, keine gleichen nebeneinander)
         function createColorsGame() {
             const colors = [
                 { name: 'Rot', color: '#ff6b6b', emoji: '🔴' },
@@ -1119,62 +1167,114 @@
                 { name: 'Gelb', color: '#ffd93d', emoji: '🟡' }
             ];
             createColorBuckets(colors);
-            createColorObjects(colors);
-            enableInteractColors();
+            createColorObjectsNoAdjacent(colors);
+            enableClickColors();
         }
 
-        // Interact.js Drag & Drop für Farben-Spiel
-        function enableInteractColors() {
-            interact('.color-object').draggable({
-                inertia: true,
-                autoScroll: true,
-                listeners: {
-                    move (event) {
-                        event.preventDefault && event.preventDefault();
-                        const target = event.target;
-                        // Position berechnen
-                        if (!target.hasOwnProperty('dragX')) target.dragX = 0;
-                        if (!target.hasOwnProperty('dragY')) target.dragY = 0;
-                        target.dragX += event.dx;
-                        target.dragY += event.dy;
-                        target.style.transform = `translate(${target.dragX}px, ${target.dragY}px)`;
-                    },
-                    end (event) {
-                        // Optional: zurücksetzen, wenn nicht gedroppt
-                    }
+        // Farben-Objekte gemischt, keine gleichen nebeneinander
+        function createColorObjectsNoAdjacent(colors) {
+            const objectsArea = document.getElementById('colors-objects-area');
+            objectsArea.innerHTML = '';
+            colorObjects = [];
+            let allObjects = [];
+            colors.forEach(colorData => {
+                for (let i = 0; i < 3; i++) {
+                    allObjects.push({ ...colorData });
                 }
             });
-            interact('.color-bucket').dropzone({
-                ondrop (event) {
-                    const dragged = event.relatedTarget;
-                    const bucket = event.target;
-                    const objectColor = dragged.dataset.color;
+            allObjects = shuffleNoAdjacentDuplicates(allObjects, 'name');
+            allObjects.forEach(colorData => {
+                const object = document.createElement('div');
+                object.className = 'color-object';
+                object.style.backgroundColor = colorData.color;
+                object.textContent = '⭐';
+                object.dataset.color = colorData.name;
+                object.tabIndex = 0;
+                objectsArea.appendChild(object);
+                colorObjects.push(object);
+            });
+        }
+
+        // Farben-Spiel: Animation beim Zuordnen
+        function animateObjectToTarget(object, target, onComplete) {
+            const objRect = object.getBoundingClientRect();
+            const tgtRect = target.getBoundingClientRect();
+            const dx = tgtRect.left + tgtRect.width/2 - (objRect.left + objRect.width/2);
+            const dy = tgtRect.top + tgtRect.height/2 - (objRect.top + objRect.height/2);
+            const clone = object.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.left = objRect.left + 'px';
+            clone.style.top = objRect.top + 'px';
+            clone.style.width = objRect.width + 'px';
+            clone.style.height = objRect.height + 'px';
+            clone.style.zIndex = 9999;
+            clone.style.pointerEvents = 'none';
+            clone.style.transition = 'none';
+            clone.style.animation = 'fly-to-target 1.2s cubic-bezier(.4,2,.3,1) forwards';
+            document.body.appendChild(clone);
+            clone.animate([
+                { transform: 'scale(1)', opacity: 1 },
+                { transform: `translate(${dx}px, ${dy}px) scale(0.2)`, opacity: 0 }
+            ], {
+                duration: 1200,
+                easing: 'cubic-bezier(.4,2,.3,1)'
+            });
+            setTimeout(() => {
+                clone.remove();
+                if (onComplete) onComplete();
+            }, 1200);
+        }
+
+        // Farben-Spiel: Korrekte Zuordnung mit Animation
+        let selectedColorObject = null;
+        function enableClickColors() {
+            document.querySelectorAll('.color-object').forEach(obj => {
+                obj.addEventListener('click', function() {
+                    if (selectedColorObject === obj) {
+                        obj.classList.remove('selected');
+                        selectedColorObject = null;
+                    } else {
+                        document.querySelectorAll('.color-object.selected').forEach(o => o.classList.remove('selected'));
+                        obj.classList.add('selected');
+                        selectedColorObject = obj;
+                    }
+                });
+            });
+            document.querySelectorAll('.color-bucket').forEach(bucket => {
+                bucket.addEventListener('click', function() {
+                    if (!selectedColorObject) return;
+                    const objectColor = selectedColorObject.dataset.color;
                     const bucketColor = bucket.dataset.color;
                     if (objectColor === bucketColor) {
                         bucket.classList.add('correct');
                         setTimeout(() => {
                             bucket.classList.remove('correct');
                         }, 1000);
-                        dragged.remove();
-                        // Prüfen ob alle Objekte sortiert wurden
-                        const remainingObjects = document.querySelectorAll('.color-object');
-                        if (remainingObjects.length === 0) {
-                            showColorsSuccess();
-                            setTimeout(() => {
-                                nextColorsQuestion();
-                            }, 2000);
-                        }
+                        // Animation zum Ziel, dann entfernen
+                        const obj = selectedColorObject;
+                        obj.classList.remove('selected');
+                        animateObjectToTarget(obj, bucket, () => {
+                            obj.remove();
+                            selectedColorObject = null;
+                            const remainingObjects = document.querySelectorAll('.color-object');
+                            if (remainingObjects.length === 0) {
+                                showColorsSuccess();
+                                setTimeout(() => {
+                                    nextColorsQuestion();
+                                }, 2000);
+                            }
+                        });
                     } else {
                         bucket.classList.add('wrong');
                         setTimeout(() => {
                             bucket.classList.remove('wrong');
                         }, 1000);
-                        // Objekt zurücksetzen
-                        dragged.dragX = 0;
-                        dragged.dragY = 0;
-                        dragged.style.transform = '';
+                        selectedColorObject.classList.add('wrong');
+                        setTimeout(() => {
+                            selectedColorObject.classList.remove('wrong');
+                        }, 1000);
                     }
-                }
+                });
             });
         }
 
@@ -1368,7 +1468,7 @@
             createShapeContainers(shapes);
             
             // Formen erstellen
-            createShapeObjects(shapes);
+            createShapeObjectsShuffledNoAdjacent(shapes);
         }
 
         // Formen-Behlter erstellen
@@ -1395,25 +1495,18 @@
             });
         }
 
-        // Formen-Objekte erstellen
-        function createShapeObjects(shapes) {
+        // Formen-Objekte gemischt, keine gleichen nebeneinander
+        function createShapeObjectsShuffledNoAdjacent(shapes) {
             const objectsArea = document.getElementById('shapes-objects-area');
             objectsArea.innerHTML = '';
             shapeObjects = [];
-            
-            // 3 Objekte pro Form erstellen und in ein Array sammeln
             let allObjects = [];
             shapes.forEach(shapeData => {
                 for (let i = 0; i < 3; i++) {
                     allObjects.push({ ...shapeData });
                 }
             });
-            // Array mischen (Fisher-Yates)
-            for (let i = allObjects.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allObjects[i], allObjects[j]] = [allObjects[j], allObjects[i]];
-            }
-            // Gemischte Objekte anzeigen
+            allObjects = shuffleNoAdjacentDuplicates(allObjects, 'name');
             allObjects.forEach(shapeData => {
                 const object = document.createElement('div');
                 object.className = 'shape-object';
@@ -1421,11 +1514,7 @@
                 object.style.color = 'white';
                 object.textContent = shapeData.emoji;
                 object.dataset.shape = shapeData.name;
-                object.draggable = true;
-                
-                object.addEventListener('dragstart', handleShapeDragStart);
-                object.addEventListener('dragend', handleShapeDragEnd);
-                
+                object.tabIndex = 0;
                 objectsArea.appendChild(object);
                 shapeObjects.push(object);
             });
