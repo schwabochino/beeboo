@@ -524,100 +524,82 @@
             font-size: 40px;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
-            
-            .game-title {
-                font-size: 36px;
-            }
-            
-            .subtitle {
-                font-size: 20px;
-            }
-            
-            .game-button {
-                padding: 20px 15px;
-                font-size: 20px;
-                min-height: 100px;
-            }
-            
-            .game-icon {
-                font-size: 36px;
-            }
-            
-            .number-display {
-                font-size: 80px;
-            }
-            
-            .score-display {
-                flex-direction: column;
+        .memory-board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+            padding: 24px 0;
+            justify-items: center;
+            background: #f5f5f5;
+            border-radius: 15px;
+            min-height: 260px;
+            margin-bottom: 20px;
+        }
+        .memory-card {
+            width: 60px;
+            height: 75px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.3s;
+            user-select: none;
+        }
+        .memory-card.flipped, .memory-card.correct {
+            background: #e0ffe0;
+            cursor: default;
+        }
+        .card-front {
+            display: block;
+        }
+        .card-back {
+            display: none;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
+        .memory-card.flipped .card-front {
+            display: none;
+        }
+        .memory-card.flipped .card-back {
+            display: block;
+        }
+        @media (max-width: 1200px) {
+            .memory-board {
+                grid-template-columns: repeat(5, 1fr);
                 gap: 10px;
+                min-height: 180px;
+                padding: 10px 0;
             }
-            
-            .baskets-container {
-                grid-template-columns: 1fr;
-                gap: 15px;
+            .memory-card {
+                width: 44px;
+                height: 54px;
+                font-size: 18px;
             }
-            
-            .basket {
-                min-height: 120px;
-                padding: 15px;
-            }
-            
-            .basket-object {
-                width: 20px;
-                height: 20px;
+            .card-back {
                 font-size: 10px;
             }
-            
-            .basket-label {
-                font-size: 20px;
+        }
+        @media (max-width: 768px) {
+            .memory-board {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 3px;
+                min-height: 80px;
+                padding: 4px 0;
             }
-            
-            .difficulty-selector {
-                flex-direction: column;
-                gap: 10px;
+            .memory-card {
+                width: 32px;
+                height: 38px;
+                font-size: 13px;
+                padding: 0;
             }
-            
-            .color-object {
-                width: 60px;
-                height: 60px;
-                font-size: 24px;
-            }
-            
-            .color-bucket {
-                width: 100px;
-                height: 100px;
-                font-size: 36px;
-            }
-            
-            .buckets-area {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .shapes-objects-area {
-                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-                gap: 15px;
-            }
-            
-            .shapes-containers-area {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 15px;
-            }
-            
-            .shape-object {
-                width: 80px;
-                height: 80px;
-                font-size: 36px;
-            }
-            
-            .shape-container {
-                width: 120px;
-                height: 120px;
-                font-size: 48px;
+            .card-back {
+                font-size: 9px;
             }
         }
     </style>
@@ -642,7 +624,7 @@
                     <div class="game-icon">🔷</div>
                     Formen zuordnen
                 </button>
-                <button class="game-button locked">
+                <button class="game-button" onclick="startGame('memory')">
                     <div class="game-icon">🧠</div>
                     Memory
                 </button>
@@ -751,6 +733,25 @@
             
             <button class="back-button" onclick="showMainMenu()">← Zurück zum Menü</button>
         </div>
+
+        <!-- Memory-Spiel -->
+        <div id="memory-game" class="game-area">
+            <div class="game-header">
+                <h2 class="game-title">🧠 Memory</h2>
+            </div>
+            <div class="game-instruction" id="memory-instruction">Finde alle Emoji-Paare!</div>
+            <div class="score-display">
+                <span id="memory-pairs-found">0</span> von <span id="memory-total-pairs">8</span> Paare gefunden
+                <span class="error-counter">Fehler: <span id="memory-error-count">0</span></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="memory-progress-fill"></div>
+            </div>
+            <div class="memory-board" id="memory-board">
+                <!-- Memory-Karten werden hier dynamisch erstellt -->
+            </div>
+            <button class="back-button" onclick="showMainMenu()">← Zurück zum Menü</button>
+        </div>
     </div>
 
     <script>
@@ -808,6 +809,23 @@
             ]
         };
 
+        // Memory-Spiel Variablen
+        let memoryPairs = [
+            { emoji: '🐝', name: 'Biene' },
+            { emoji: '🍯', name: 'Honig' },
+            { emoji: '🍰', name: 'Kuchen' },
+            { emoji: '🍓', name: 'Erdbeere' },
+            { emoji: '🍋', name: 'Zitrone' },
+            { emoji: '🍎', name: 'Apfel' },
+            { emoji: '🏎️', name: 'Rennwagen' },
+            { emoji: '👸', name: 'Prinzessin' }
+        ];
+        let memoryFirstCard = null;
+        let memorySecondCard = null;
+        let memoryLock = false;
+        let memoryPairsFound = 0;
+        let memoryErrorCount = 0;
+
         // Spiel initialisieren
         function initGame() {
             showMainMenu();
@@ -819,6 +837,7 @@
             document.getElementById('numbers-game').style.display = 'none';
             document.getElementById('colors-game').style.display = 'none';
             document.getElementById('shapes-game').style.display = 'none';
+            document.getElementById('memory-game').style.display = 'none'; // Memory-Spiel ausblenden
             currentGame = null;
         }
 
@@ -830,6 +849,8 @@
                 startColorsGame();
             } else if (gameType === 'shapes') {
                 startShapesGame();
+            } else if (gameType === 'memory') {
+                startMemoryGame();
             }
         }
 
@@ -1450,6 +1471,123 @@
                 <button class="next-button" onclick="startShapesGame()">Nochmal spielen</button>
                 <button class="back-button" onclick="showMainMenu()">← Zurück zum Menü</button>
             `;
+        }
+
+        // Memory-Spiel starten
+        function startMemoryGame() {
+            currentGame = 'memory';
+            memoryPairsFound = 0;
+            memoryErrorCount = 0;
+            memoryFirstCard = null;
+            memorySecondCard = null;
+            memoryLock = false;
+            document.getElementById('memory-pairs-found').textContent = memoryPairsFound;
+            document.getElementById('memory-error-count').textContent = memoryErrorCount;
+            document.getElementById('memory-total-pairs').textContent = memoryPairs.length;
+            document.getElementById('memory-progress-fill').style.width = '0%';
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('memory-game').style.display = 'flex';
+            createMemoryBoard();
+        }
+
+        // Memory-Board erstellen
+        function createMemoryBoard() {
+            const board = document.getElementById('memory-board');
+            board.innerHTML = '';
+            let cards = [];
+            memoryPairs.forEach(pair => {
+                cards.push({ ...pair });
+                cards.push({ ...pair });
+            });
+            // Karten mischen (Fisher-Yates)
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            cards.forEach((pair, idx) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.name = pair.name;
+                card.dataset.idx = idx;
+                card.innerHTML = `
+                    <div class="card-front">${pair.emoji}</div>
+                    <div class="card-back">?</div>
+                `;
+                card.addEventListener('click', handleMemoryCardClick);
+                board.appendChild(card);
+            });
+        }
+
+        function handleMemoryCardClick(e) {
+            const card = e.currentTarget;
+            if (memoryLock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            card.classList.add('flipped');
+            if (!memoryFirstCard) {
+                memoryFirstCard = card;
+                return;
+            }
+            memorySecondCard = card;
+            memoryLock = true;
+            // Prüfe auf Match
+            if (memoryFirstCard.dataset.name === memorySecondCard.dataset.name) {
+                // Treffer: Karten animiert entfernen
+                setTimeout(() => {
+                    memoryFirstCard.classList.add('matched');
+                    memorySecondCard.classList.add('matched');
+                    memoryFirstCard.style.transition = 'opacity 0.4s';
+                    memorySecondCard.style.transition = 'opacity 0.4s';
+                    memoryFirstCard.style.opacity = '0';
+                    memorySecondCard.style.opacity = '0';
+                    setTimeout(() => {
+                        if (memoryFirstCard && memoryFirstCard.parentNode) memoryFirstCard.parentNode.removeChild(memoryFirstCard);
+                        if (memorySecondCard && memorySecondCard.parentNode) memorySecondCard.parentNode.removeChild(memorySecondCard);
+                        memoryPairsFound++;
+                        document.getElementById('memory-pairs-found').textContent = memoryPairsFound;
+                        document.getElementById('memory-progress-fill').style.width = (memoryPairsFound / memoryPairs.length * 100) + '%';
+                        memoryFirstCard = null;
+                        memorySecondCard = null;
+                        memoryLock = false;
+                        if (memoryPairsFound === memoryPairs.length) {
+                            showMemorySuccess();
+                            setTimeout(() => {
+                                startMemoryGame();
+                            }, 2000);
+                        }
+                    }, 400);
+                }, 600);
+            } else {
+                // Fehlversuch: Karten wieder umdrehen
+                memoryErrorCount++;
+                document.getElementById('memory-error-count').textContent = memoryErrorCount;
+                setTimeout(() => {
+                    if (memoryFirstCard) memoryFirstCard.classList.remove('flipped');
+                    if (memorySecondCard) memorySecondCard.classList.remove('flipped');
+                    memoryFirstCard = null;
+                    memorySecondCard = null;
+                    memoryLock = false;
+                }, 900);
+            }
+        }
+
+        // Memory-Erfolg anzeigen
+        function showMemorySuccess() {
+            const message = document.createElement('div');
+            message.className = 'success-message';
+            message.textContent = '🎉 Alle Paare gefunden! 🎉';
+            document.getElementById('memory-game').appendChild(message);
+            
+            // Sterne-Animation
+            createStarAnimation();
+            
+            setTimeout(() => {
+                message.remove();
+            }, 2000);
+        }
+
+        // Memory-Spiel beenden (nicht direkt, da es keine Fragen gibt)
+        function endMemoryGame() {
+            // Hier könnte eine Erfolgsnachricht angezeigt werden, falls das Spiel beendet werden soll
+            // Da es keine Fragen gibt, wird es nie beendet, außer durch Neustart
         }
 
         // Spiel beim Laden starten
