@@ -147,7 +147,7 @@
         .basket {
             background: #8BC34A;
             border-radius: 15px;
-            padding: 20px;
+            padding: 16px 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
@@ -155,7 +155,28 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 150px;
+            min-height: 90px;
+            max-width: 120px;
+            max-height: 120px;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .basket-objects {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            /* grid-template-columns wird dynamisch gesetzt */
+            gap: 5px;
+        }
+        @media (max-width: 600px) {
+            .basket {
+                max-width: 80px;
+                max-height: 80px;
+                min-height: 60px;
+                padding: 8px 2px;
+            }
         }
 
         .basket:hover {
@@ -843,15 +864,6 @@
                 <!-- Körbe werden hier dynamisch erstellt -->
             </div>
             
-            <div class="difficulty-selector">
-                <label>Schwierigkeit:</label>
-                <select id="difficulty-select" onchange="changeDifficulty()">
-                    <option value="easy">Einfach (1-5)</option>
-                    <option value="medium">Mittel (1-10)</option>
-                    <option value="hard">Schwer (1-15)</option>
-                </select>
-            </div>
-            
             <button class="back-button" onclick="showMainMenu()">← Zurück zum Menü</button>
         </div>
 
@@ -953,11 +965,10 @@
         let targetNumber = 0;
         let errorCount = 0;
         let gameObjects = [];
-        let currentDifficulty = 'easy';
+        // Zahlen-Spiel: Nur noch Zahlenraum 1-10
+        let currentDifficulty = 'default';
         let difficultyRanges = {
-            easy: { min: 1, max: 5 },
-            medium: { min: 1, max: 10 },
-            hard: { min: 1, max: 15 }
+            default: { min: 1, max: 10 }
         };
         
         // Farben-Spiel Variablen
@@ -1067,7 +1078,7 @@
             document.getElementById('numbers-game').style.display = 'flex';
             
             // Schwierigkeit zurücksetzen
-            document.getElementById('difficulty-select').value = currentDifficulty;
+            // Entferne die Schwierigkeitsauswahl im UI
             
             nextQuestion();
         }
@@ -1107,7 +1118,7 @@
             gameObjects = [];
             
             // 3 Körbe mit verschiedenen Anzahlen erstellen
-            const basketCounts = generateBasketCounts();
+            const {basketCounts, correctIndex} = generateBasketCounts();
             const symbols = ['⭐', '❤️', '🔵', '🟡', '🟢', '🟣', '🟠', '⚪', '🔴', '💙'];
             const selectedSymbol = symbols[Math.floor(Math.random() * symbols.length)];
             
@@ -1117,25 +1128,21 @@
                 basket.dataset.count = count;
                 basket.onclick = () => clickBasket(basket, count);
                 
-                // Objekte im Korb erstellen
+                // Objekte im Korb als Grid (max 5 Spalten)
                 const objectsContainer = document.createElement('div');
                 objectsContainer.className = 'basket-objects';
-                
+                const columns = Math.min(5, Math.ceil(Math.sqrt(count)));
+                objectsContainer.style.display = 'grid';
+                objectsContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                objectsContainer.style.justifyItems = 'center';
+                objectsContainer.style.gap = '5px';
                 for (let i = 0; i < count; i++) {
                     const object = document.createElement('div');
                     object.className = 'basket-object';
                     object.textContent = selectedSymbol;
                     objectsContainer.appendChild(object);
                 }
-                
                 basket.appendChild(objectsContainer);
-                
-                // Kein Label mit Anzahl - fördert visuelles Zählen
-                // const label = document.createElement('div');
-                // label.className = 'basket-label';
-                // label.textContent = count;
-                // basket.appendChild(label);
-                
                 container.appendChild(basket);
                 gameObjects.push(basket);
             });
@@ -1144,20 +1151,20 @@
         // Verschiedene Anzahlen für Körbe generieren
         function generateBasketCounts() {
             const range = difficultyRanges[currentDifficulty];
-            const counts = [targetNumber]; // Richtige Anzahl
-            
-            // Zwei falsche Anzahlen hinzufügen
-            while (counts.length < 3) {
+            // Zufällige Position für die richtige Antwort
+            const correctIndex = Math.floor(Math.random() * 3);
+            const counts = [];
+            // Zwei falsche Anzahlen generieren
+            while (counts.length < 2) {
                 let wrongCount;
                 do {
                     wrongCount = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-                } while (counts.includes(wrongCount));
-                
+                } while (wrongCount === targetNumber || counts.includes(wrongCount));
                 counts.push(wrongCount);
             }
-            
-            // Mischen
-            return counts.sort(() => Math.random() - 0.5);
+            // Richtige Anzahl an zufällige Stelle einfügen
+            counts.splice(correctIndex, 0, targetNumber);
+            return { basketCounts: counts, correctIndex };
         }
 
         // Korb anklicken
