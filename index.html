@@ -754,6 +754,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@interactjs/interactjs/index.min.js"></script>
     <script>
         // Spielvariablen
         let currentGame = null;
@@ -1103,19 +1104,70 @@
             createColorsGame();
         }
 
-        // Farben-Spiel erstellen
+        // Farben-Spiel erstellen (mit interact.js)
         function createColorsGame() {
             const colors = [
                 { name: 'Rot', color: '#ff6b6b', emoji: '🔴' },
                 { name: 'Blau', color: '#4a90e2', emoji: '🔵' },
                 { name: 'Gelb', color: '#ffd93d', emoji: '🟡' }
             ];
-            
-            // Eimer erstellen
             createColorBuckets(colors);
-            
-            // Objekte erstellen
             createColorObjects(colors);
+            enableInteractColors();
+        }
+
+        // Interact.js Drag & Drop für Farben-Spiel
+        function enableInteractColors() {
+            interact('.color-object').draggable({
+                inertia: true,
+                autoScroll: true,
+                listeners: {
+                    move (event) {
+                        const target = event.target;
+                        // Position berechnen
+                        if (!target.hasOwnProperty('dragX')) target.dragX = 0;
+                        if (!target.hasOwnProperty('dragY')) target.dragY = 0;
+                        target.dragX += event.dx;
+                        target.dragY += event.dy;
+                        target.style.transform = `translate(${target.dragX}px, ${target.dragY}px)`;
+                    },
+                    end (event) {
+                        // Optional: zurücksetzen, wenn nicht gedroppt
+                    }
+                }
+            });
+            interact('.color-bucket').dropzone({
+                ondrop (event) {
+                    const dragged = event.relatedTarget;
+                    const bucket = event.target;
+                    const objectColor = dragged.dataset.color;
+                    const bucketColor = bucket.dataset.color;
+                    if (objectColor === bucketColor) {
+                        bucket.classList.add('correct');
+                        setTimeout(() => {
+                            bucket.classList.remove('correct');
+                        }, 1000);
+                        dragged.remove();
+                        // Prüfen ob alle Objekte sortiert wurden
+                        const remainingObjects = document.querySelectorAll('.color-object');
+                        if (remainingObjects.length === 0) {
+                            showColorsSuccess();
+                            setTimeout(() => {
+                                nextColorsQuestion();
+                            }, 2000);
+                        }
+                    } else {
+                        bucket.classList.add('wrong');
+                        setTimeout(() => {
+                            bucket.classList.remove('wrong');
+                        }, 1000);
+                        // Objekt zurücksetzen
+                        dragged.dragX = 0;
+                        dragged.dragY = 0;
+                        dragged.style.transform = '';
+                    }
+                }
+            });
         }
 
         // Farben-Eimer erstellen
