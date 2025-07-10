@@ -614,20 +614,6 @@
             box-shadow: 0 0 0 4px #fbb;
             z-index: 2;
         }
-        @keyframes fly-to-target {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            80% {
-                opacity: 1;
-                transform: scale(1.2);
-            }
-            100% {
-                opacity: 0;
-                transform: scale(0.2);
-            }
-        }
     </style>
 </head>
 <body>
@@ -1188,13 +1174,14 @@
             });
         }
 
-        // Farben-Spiel: Animation beim Zuordnen
-        function animateObjectToTarget(object, target, onComplete) {
-            const objRect = object.getBoundingClientRect();
-            const tgtRect = target.getBoundingClientRect();
-            const dx = tgtRect.left + tgtRect.width/2 - (objRect.left + objRect.width/2);
-            const dy = tgtRect.top + tgtRect.height/2 - (objRect.top + objRect.height/2);
-            const clone = object.cloneNode(true);
+        // Animation: Objekt fliegt zum Ziel
+        function animateObjectToTarget(obj, target, onComplete) {
+            const objRect = obj.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const dx = targetRect.left + targetRect.width/2 - objRect.left - objRect.width/2;
+            const dy = targetRect.top + targetRect.height/2 - objRect.top - objRect.height/2;
+            
+            const clone = obj.cloneNode(true);
             clone.style.position = 'fixed';
             clone.style.left = objRect.left + 'px';
             clone.style.top = objRect.top + 'px';
@@ -1202,16 +1189,21 @@
             clone.style.height = objRect.height + 'px';
             clone.style.zIndex = 9999;
             clone.style.pointerEvents = 'none';
-            clone.style.transition = 'none';
-            clone.style.animation = 'fly-to-target 1.2s cubic-bezier(.4,2,.3,1) forwards';
+            clone.style.transition = 'all 0.6s ease-in-out'; // Geändert: 0.6s ease-in-out
             document.body.appendChild(clone);
-            clone.animate([
-                { transform: 'scale(1)', opacity: 1 },
-                { transform: `translate(${dx}px, ${dy}px) scale(0.2)`, opacity: 0 }
-            ], {
-                duration: 1200,
-                easing: 'cubic-bezier(.4,2,.3,1)'
-            });
+            
+            // Phase 1: Zum Ziel fliegen (50ms Verzögerung)
+            setTimeout(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.8)`;
+            }, 50);
+            
+            // Phase 2: Schrumpfen und ausblenden (600ms)
+            setTimeout(() => {
+                clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
+                clone.style.opacity = '0';
+            }, 600);
+            
+            // Phase 3: Entfernen (1200ms)
             setTimeout(() => {
                 clone.remove();
                 if (onComplete) onComplete();
