@@ -453,7 +453,7 @@
         .shape-object {
             width: 100px;
             height: 100px;
-            cursor: grab;
+            cursor: pointer; /* Geändert von grab zu pointer */
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
@@ -466,14 +466,8 @@
         }
 
         .shape-object:active {
-            cursor: grabbing;
+            cursor: pointer; /* Geändert von grabbing zu pointer */
             transform: scale(0.95);
-        }
-
-        .shape-object.dragging {
-            opacity: 0.5;
-            transform: scale(1.1);
-            z-index: 1000;
         }
 
         .shape-container {
@@ -733,7 +727,7 @@
                 <h2 class="game-title">🔷 Formen lernen</h2>
             </div>
             
-            <div class="game-instruction" id="shapes-instruction">Ziehe die Formen in die richtigen Behälter!</div>
+            <div class="game-instruction" id="shapes-instruction">Klicke zuerst eine Form, dann den passenden Behälter!</div>
             
             <div class="score-display">
                 <span id="shapes-current-score">0</span> von <span id="shapes-total-questions">5</span> richtig
@@ -814,7 +808,6 @@
         let shapesCurrentScore = 0;
         let shapesCurrentQuestion = 0;
         let shapesErrorCount = 0;
-        let draggedShape = null;
         let shapeObjects = [];
         let shapeContainers = [];
         let currentShapesDifficulty = 'basic';
@@ -1487,8 +1480,8 @@
                     <div class="container-label">${shapeData.name}</div>
                 `;
                 
-                container.addEventListener('dragover', handleShapeDragOver);
-                container.addEventListener('drop', handleShapeDrop);
+                // Click-Event für Container hinzufügen
+                container.addEventListener('click', handleShapeContainerClick);
                 
                 containersArea.appendChild(container);
                 shapeContainers.push(container);
@@ -1515,45 +1508,74 @@
                 object.textContent = shapeData.emoji;
                 object.dataset.shape = shapeData.name;
                 object.tabIndex = 0;
+                
+                // Click-Event für Formen-Objekte hinzufügen
+                object.addEventListener('click', handleShapeObjectClick);
+                
                 objectsArea.appendChild(object);
                 shapeObjects.push(object);
             });
         }
 
-        // Formen Drag & Drop Event Handler
-        function handleShapeDragStart(e) {
-            draggedShape = e.target;
-            e.target.classList.add('dragging');
+        // Click-Handler für Formen-Objekte
+        function handleShapeObjectClick(e) {
+            const clickedObject = e.target;
+            
+            // Alle anderen Objekte deselektieren
+            document.querySelectorAll('.shape-object').forEach(obj => {
+                obj.classList.remove('selected', 'wrong');
+            });
+            
+            // Dieses Objekt selektieren
+            clickedObject.classList.add('selected');
         }
 
-        function handleShapeDragEnd(e) {
-            e.target.classList.remove('dragging');
-            draggedShape = null;
-        }
-
-        function handleShapeDragOver(e) {
-            e.preventDefault();
-        }
-
-        function handleShapeDrop(e) {
-            e.preventDefault();
+        // Click-Handler für Formen-Container
+        function handleShapeContainerClick(e) {
+            const clickedContainer = e.target.closest('.shape-container');
+            const selectedObject = document.querySelector('.shape-object.selected');
             
-            if (!draggedShape) return;
+            if (!selectedObject) {
+                // Kein Objekt ausgewählt - Container selektieren
+                document.querySelectorAll('.shape-container').forEach(container => {
+                    container.classList.remove('selected', 'wrong');
+                });
+                clickedContainer.classList.add('selected');
+                return;
+            }
             
-            const container = e.target.closest('.shape-container');
-            if (!container) return;
-            
-            const objectShape = draggedShape.dataset.shape;
-            const containerShape = container.dataset.shape;
+            const objectShape = selectedObject.dataset.shape;
+            const containerShape = clickedContainer.dataset.shape;
             
             if (objectShape === containerShape) {
                 // Richtig!
-                container.classList.add('correct');
-                draggedShape.remove();
+                clickedContainer.classList.add('correct');
+                
+                // Animation: Objekt fliegt zum Container
+                const rect = clickedContainer.getBoundingClientRect();
+                const objectRect = selectedObject.getBoundingClientRect();
+                
+                selectedObject.style.position = 'fixed';
+                selectedObject.style.top = objectRect.top + 'px';
+                selectedObject.style.left = objectRect.left + 'px';
+                selectedObject.style.zIndex = '1000';
+                selectedObject.style.transition = 'all 0.6s ease-in-out';
                 
                 setTimeout(() => {
-                    container.classList.remove('correct');
-                }, 1000);
+                    selectedObject.style.top = (rect.top + rect.height/2 - objectRect.height/2) + 'px';
+                    selectedObject.style.left = (rect.left + rect.width/2 - objectRect.width/2) + 'px';
+                    selectedObject.style.transform = 'scale(0.8)';
+                }, 50);
+                
+                setTimeout(() => {
+                    selectedObject.style.transform = 'scale(0.2)';
+                    selectedObject.style.opacity = '0';
+                }, 600);
+                
+                setTimeout(() => {
+                    selectedObject.remove();
+                    clickedContainer.classList.remove('correct');
+                }, 1200);
                 
                 // Prüfen ob alle Formen sortiert wurden
                 const remainingObjects = document.querySelectorAll('.shape-object');
@@ -1566,12 +1588,15 @@
                 }
             } else {
                 // Falsch!
-                container.classList.add('wrong');
+                clickedContainer.classList.add('wrong');
+                selectedObject.classList.remove('selected');
+                selectedObject.classList.add('wrong');
                 shapesErrorCount++;
                 document.getElementById('shapes-error-count').textContent = shapesErrorCount;
                 
                 setTimeout(() => {
-                    container.classList.remove('wrong');
+                    clickedContainer.classList.remove('wrong');
+                    selectedObject.classList.remove('wrong');
                 }, 1000);
             }
         }
