@@ -37,3 +37,9 @@ Rufe [http://localhost:8080](http://localhost:8080) auf.
 **Hinweis:**
 - Wenn du weitere statische Dateien (z.B. Bilder, CSS, JS) hinzufügen möchtest, kopiere sie einfach ins Projektverzeichnis und passe ggf. den Dockerfile an.
 - Für Fragen oder Feedback: Issues im GitHub-Repo nutzen. 
+
+---
+
+## Lizenz
+
+Dieses Projekt steht unter der MIT-Lizenz. Siehe die Datei [LICENSE](LICENSE) für weitere Details. 
