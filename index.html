@@ -827,7 +827,12 @@
         let memoryErrorCount = 0;
 
         // Spiel initialisieren
+        let numbersGameInitialHTML = null;
         function initGame() {
+            // Ursprüngliches HTML für das Zahlen-Spiel speichern
+            if (!numbersGameInitialHTML) {
+                numbersGameInitialHTML = document.getElementById('numbers-game').innerHTML;
+            }
             showMainMenu();
         }
 
@@ -856,6 +861,10 @@
 
         // Zahlen-Spiel starten
         function startNumbersGame() {
+            // Ursprüngliches HTML wiederherstellen
+            if (numbersGameInitialHTML) {
+                document.getElementById('numbers-game').innerHTML = numbersGameInitialHTML;
+            }
             currentGame = 'numbers';
             currentScore = 0;
             currentQuestion = 0;
